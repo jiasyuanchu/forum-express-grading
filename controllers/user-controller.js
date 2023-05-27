@@ -1,5 +1,5 @@
 const bcrypt = require('bcryptjs')
-const { User } = require('../models')
+const { User, Comment, Restaurant } = require('../models')
 const { imgurFileHandler } = require('../helpers/file-helpers')
 
 const userController = {
@@ -37,13 +37,28 @@ const userController = {
     return res.redirect('/signin')
   },
   getUser: (req, res, next) => {
-    User.findByPk(req.params.id, { raw: true })
-    return User.findByPk(req.params.id, { raw: true })
-      .then(user => {
-        if (!user) throw new Error('User did not exist!')
-        return res.render('users/profile', { user })
+    return User.findByPk(req.params.id,
+      {
+        include:
+        {
+          model: Comment,
+          include: Restaurant
+        },
+        nest: true
       })
-      .catch(err => next(err))
+      .then(user => {
+        if (!user) throw new Error("User didn't exist.")
+        const commentRestaurant = user.Comments
+          ? user.Comments.map(
+            comment => comment ? comment.Restaurant.dataValues : null
+          )
+          : [] // 若comment沒有值得話就給空陣列
+        return res.render('users/profile', {
+          user: user.toJSON(),
+          commentRestaurant
+        })
+      })
+      .catch(e => next(e))
   },
   editUser: (req, res, next) => {
     return User.findByPk(req.params.id, { raw: true })
@@ -51,7 +66,7 @@ const userController = {
         if (!user) throw new Error("User didn't exist.")
         return res.render('users/edit', { user })
       })
-      .catch(err => next(err))
+      .catch(e => next(e))
   },
   putUser: (req, res, next) => {
     const { name } = req.body
@@ -69,7 +84,7 @@ const userController = {
         req.flash('success_messages', '使用者資料編輯成功')
         return res.redirect(`/users/${req.params.id}`)
       })
-      .catch(err => next(err))
+      .catch(e => next(e))
   }
 }
 
