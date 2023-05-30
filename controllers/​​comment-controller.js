@@ -36,5 +36,4 @@ const commentController = {
       .catch(err => next(err))
   }
 }
-
 module.exports = commentController
